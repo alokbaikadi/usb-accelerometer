@@ -23,8 +23,10 @@
 #define VENDOR_ID	0x0ffe
 #define PRODUCT_ID	0x1008
 
+typedef unsigned char accel_data;
+
 /* table of devices that work with this driver */
-static const struct usb_device_id id_table[] = {
+static const struct hid_device_id id_table[] = {
 	{ USB_DEVICE(VENDOR_ID, PRODUCT_ID) },
 	{ },
 };
@@ -32,16 +34,17 @@ MODULE_DEVICE_TABLE (usb, id_table);
 
 struct usb_accel {
 	struct usb_device *	udev;
-	unsigned char		x;
-	unsigned char		y;
-	unsigned char		z;
+	accel_data		x;
+	accel_data		y;
+	accel_data		z;
+    accel_data      o;
 };
 
-static unsigned char rest_x;
-static unsigned char rest_y;
-static unsigned char rest_z;
+static accel_data rest_x;
+static accel_data rest_y;
+static accel_data rest_z;
 
-static int read_position(struct device *dev, unsigned char *x, unsigned char *y, unsigned char *z)
+static int read_position(struct device *dev, accel_data *x, accel_data *y, accel_data *z)
 {
     struct usb_interface *intf = to_usb_interface(dev);
     struct usb_accel *accel = usb_get_intfdata(intf);
@@ -53,9 +56,9 @@ static int read_position(struct device *dev, unsigned char *x, unsigned char *y,
 
 static ssize_t show_position(struct device *dev, struct device_attribute *attr, char *buf)
 {
-    unsigned char x;
-    unsigned char y;
-    unsigned char z;
+    accel_data x;
+    accel_data y;
+    accel_data z;
 
     read_position(dev,&x,&y,&z);
     return sprintf(buf, "(%d,%d,%d)", x, y, z);
@@ -142,10 +145,10 @@ static void accel_disconnect(struct usb_interface *interface)
 	dev_info(&interface->dev, "USB Accelerometer now disconnected\n");
 }
 
-static struct usb_driver accel_driver = {
+static struct hid_driver accel_driver = {
 	.name =		"usbaccel",
 	.probe =	accel_probe,
-	.disconnect =	accel_disconnect,
+	.remove =	accel_disconnect,
 	.id_table =	id_table,
 };
 
