@@ -14,7 +14,6 @@
 #include <linux/init.h>
 #include <linux/slab.h>
 #include <linux/module.h>
-#include <linux/usb.h>
 #include <linux/hid.h>
 
 
@@ -31,9 +30,9 @@ static const struct hid_device_id id_table[] = {
 	{ HID_USB_DEVICE(VENDOR_ID, PRODUCT_ID) },
 	{ },
 };
-MODULE_DEVICE_TABLE (usb, id_table);
+MODULE_DEVICE_TABLE (hid, id_table);
 
-struct usb_accel {
+struct hid_accel {
 	struct hid_device *	udev;
     unsigned int data;
 };
@@ -44,8 +43,8 @@ static accel_data rest_z;
 
 static int read_position(struct device *dev, accel_data *x, accel_data *y, accel_data *z)
 {
-    struct usb_interface *intf = to_usb_interface(dev);
-    struct usb_accel *accel = usb_get_intfdata(intf);
+    //struct hid_interface *intf = to_hid_interface(dev);
+    //struct hid_accel *accel = hid_get_intfdata(intf);
 //    *x = accel->x;
 //    *y = accel->y;
 //    *z = accel->z;
@@ -80,7 +79,7 @@ static DEVICE_ATTR(recalibrate, S_IWUSR, NULL, set_recalibrate);
 
 static int accel_probe(struct hid_device *dev, const struct hid_device_id *id)
 {
-    //struct usb_accel *data = NULL;
+    //struct hid_accel *data = NULL;
 	int retval = -ENOMEM;
 
     printk(KERN_INFO "Probing device\n");
@@ -91,7 +90,7 @@ static int accel_probe(struct hid_device *dev, const struct hid_device_id *id)
     if (retval)
         goto error;
 
-	//data = kzalloc(sizeof(struct usb_accel), GFP_KERNEL);
+	//data = kzalloc(sizeof(struct hid_accel), GFP_KERNEL);
 	//if (data == NULL) {
 	//	dev_err(&dev->dev, "Out of memory\n");
 	//	goto error_mem;
@@ -113,6 +112,7 @@ static int accel_probe(struct hid_device *dev, const struct hid_device_id *id)
 	return 0;
 
 error:
+    err_hid("There was an error\n");
 	device_remove_file(&dev->dev, &dev_attr_position);
 	device_remove_file(&dev->dev, &dev_attr_calibrate);
 	device_remove_file(&dev->dev, &dev_attr_recalibrate);
@@ -131,30 +131,36 @@ static void accel_disconnect(struct hid_device *dev)
 	dev_info(&dev->dev, "USB Accelerometer now disconnected\n");
 }
 
+static int accel_event(struct hid_device *dev, struct hid_field *field, struct hid_usage *usage, __s32 value)
+{
+    printk(KERN_INFO "In the event handler\n");
+}
+
 static struct hid_driver accel_driver = {
-	.name =		"usbaccel",
+	.name =		"hidaccel",
 	.probe =	accel_probe,
 	.remove =	accel_disconnect,
+    .event =    accel_event,
 	.id_table =	id_table,
 };
 
-static int __init usb_accel_init(void)
+static int __init hid_accel_init(void)
 {
 	int retval = 0;
 
 	retval = hid_register_driver(&accel_driver);
 	if (retval)
-		err("usb_register failed. Error number %d", retval);
+		err_hid("hid_register failed. Error number %d", retval);
 	return retval;
 }
 
-static void __exit usb_accel_exit(void)
+static void __exit hid_accel_exit(void)
 {
 	hid_unregister_driver(&accel_driver);
 }
 
-module_init (usb_accel_init);
-module_exit (usb_accel_exit);
+module_init (hid_accel_init);
+module_exit (hid_accel_exit);
 
 MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_DESCRIPTION(DRIVER_DESC);
