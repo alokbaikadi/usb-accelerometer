@@ -15,6 +15,7 @@
 #include <linux/slab.h>
 #include <linux/module.h>
 #include <linux/usb.h>
+#include <linux/hid.h>
 
 
 #define DRIVER_AUTHOR "Alok Baikadi, baikadi@engineering.uiuc.edu"
@@ -27,17 +28,14 @@ typedef unsigned char accel_data;
 
 /* table of devices that work with this driver */
 static const struct hid_device_id id_table[] = {
-	{ USB_DEVICE(VENDOR_ID, PRODUCT_ID) },
+	{ HID_USB_DEVICE(VENDOR_ID, PRODUCT_ID) },
 	{ },
 };
 MODULE_DEVICE_TABLE (usb, id_table);
 
 struct usb_accel {
-	struct usb_device *	udev;
-	accel_data		x;
-	accel_data		y;
-	accel_data		z;
-    accel_data      o;
+	struct hid_device *	udev;
+    unsigned int data;
 };
 
 static accel_data rest_x;
@@ -48,9 +46,9 @@ static int read_position(struct device *dev, accel_data *x, accel_data *y, accel
 {
     struct usb_interface *intf = to_usb_interface(dev);
     struct usb_accel *accel = usb_get_intfdata(intf);
-    *x = accel->x;
-    *y = accel->y;
-    *z = accel->z;
+//    *x = accel->x;
+//    *y = accel->y;
+//    *z = accel->z;
     return 0;
 }
 
@@ -80,69 +78,52 @@ static DEVICE_ATTR(position, S_IRUGO, show_position, NULL);
 static DEVICE_ATTR(calibrate, S_IRUGO, show_calibrate, NULL);
 static DEVICE_ATTR(recalibrate, S_IWUSR, NULL, set_recalibrate);
 
-static int accel_probe(struct usb_interface *interface, const struct usb_device_id *id)
+static int accel_probe(struct hid_device *dev, const struct hid_device_id *id)
 {
-	struct usb_device *udev = interface_to_usbdev(interface);
-	struct usb_accel *dev = NULL;
+	struct usb_accel *data = NULL;
 	int retval = -ENOMEM;
 
     printk(KERN_INFO "Probing device\n");
-    dev_info(&interface->dev, "Found USB Accelerometer\n");
+    dev_info(&dev->dev, "Found USB Accelerometer\n");
 
-	dev = kzalloc(sizeof(struct usb_accel), GFP_KERNEL);
-	if (dev == NULL) {
-		dev_err(&interface->dev, "Out of memory\n");
+	data = kzalloc(sizeof(struct usb_accel), GFP_KERNEL);
+	if (data == NULL) {
+		dev_err(&dev->dev, "Out of memory\n");
 		goto error_mem;
 	}
 
-	dev->udev = usb_get_dev(udev);
-
-	usb_set_intfdata (interface, dev);
-
-	retval = device_create_file(&interface->dev, &dev_attr_position);
+	retval = device_create_file(&dev->dev, &dev_attr_position);
 	if (retval)
 		goto error;
-	retval = device_create_file(&interface->dev, &dev_attr_calibrate);
+	retval = device_create_file(&dev->dev, &dev_attr_calibrate);
 	if (retval)
 		goto error;
-	retval = device_create_file(&interface->dev, &dev_attr_recalibrate);
+	retval = device_create_file(&dev->dev, &dev_attr_recalibrate);
 	if (retval)
 		goto error;
 
-    read_position(&interface->dev, &rest_x, &rest_y, &rest_z);
+    read_position(&dev->dev, &rest_x, &rest_y, &rest_z);
 
-	dev_info(&interface->dev, "USB Accelerometer device now attached\n");
+	dev_info(&dev->dev, "USB Accelerometer device now attached\n");
 	return 0;
 
 error:
-	device_remove_file(&interface->dev, &dev_attr_position);
-	device_remove_file(&interface->dev, &dev_attr_calibrate);
-	device_remove_file(&interface->dev, &dev_attr_recalibrate);
-	usb_set_intfdata (interface, NULL);
-	usb_put_dev(dev->udev);
+	device_remove_file(&dev->dev, &dev_attr_position);
+	device_remove_file(&dev->dev, &dev_attr_calibrate);
+	device_remove_file(&dev->dev, &dev_attr_recalibrate);
 	kfree(dev);
 error_mem:
 	return retval;
 }
 
-static void accel_disconnect(struct usb_interface *interface)
+static void accel_disconnect(struct hid_device *dev)
 {
-	struct usb_accel *dev;
-
-	dev = usb_get_intfdata (interface);
-
-	device_remove_file(&interface->dev, &dev_attr_position);
-	device_remove_file(&interface->dev, &dev_attr_calibrate);
-	device_remove_file(&interface->dev, &dev_attr_recalibrate);
-
-	/* first remove the files, then set the pointer to NULL */
-	usb_set_intfdata (interface, NULL);
-
-	usb_put_dev(dev->udev);
-
+	device_remove_file(&dev->dev, &dev_attr_position);
+	device_remove_file(&dev->dev, &dev_attr_calibrate);
+	device_remove_file(&dev->dev, &dev_attr_recalibrate);
 	kfree(dev);
 
-	dev_info(&interface->dev, "USB Accelerometer now disconnected\n");
+	dev_info(&dev->dev, "USB Accelerometer now disconnected\n");
 }
 
 static struct hid_driver accel_driver = {
@@ -156,7 +137,7 @@ static int __init usb_accel_init(void)
 {
 	int retval = 0;
 
-	retval = usb_register(&accel_driver);
+	retval = hid_register_driver(&accel_driver);
 	if (retval)
 		err("usb_register failed. Error number %d", retval);
 	return retval;
@@ -164,7 +145,7 @@ static int __init usb_accel_init(void)
 
 static void __exit usb_accel_exit(void)
 {
-	usb_deregister(&accel_driver);
+	hid_unregister_driver(&accel_driver);
 }
 
 module_init (usb_accel_init);
