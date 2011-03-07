@@ -80,17 +80,22 @@ static DEVICE_ATTR(recalibrate, S_IWUSR, NULL, set_recalibrate);
 
 static int accel_probe(struct hid_device *dev, const struct hid_device_id *id)
 {
-	struct usb_accel *data = NULL;
+    //struct usb_accel *data = NULL;
 	int retval = -ENOMEM;
 
     printk(KERN_INFO "Probing device\n");
     dev_info(&dev->dev, "Found USB Accelerometer\n");
 
-	data = kzalloc(sizeof(struct usb_accel), GFP_KERNEL);
-	if (data == NULL) {
-		dev_err(&dev->dev, "Out of memory\n");
-		goto error_mem;
-	}
+    // Set up HID Report Parser
+    retval = hid_parse(dev);
+    if (retval)
+        goto error;
+
+	//data = kzalloc(sizeof(struct usb_accel), GFP_KERNEL);
+	//if (data == NULL) {
+	//	dev_err(&dev->dev, "Out of memory\n");
+	//	goto error_mem;
+	//}
 
 	retval = device_create_file(&dev->dev, &dev_attr_position);
 	if (retval)
@@ -111,7 +116,7 @@ error:
 	device_remove_file(&dev->dev, &dev_attr_position);
 	device_remove_file(&dev->dev, &dev_attr_calibrate);
 	device_remove_file(&dev->dev, &dev_attr_recalibrate);
-	kfree(dev);
+//	kfree(dev);
 error_mem:
 	return retval;
 }
