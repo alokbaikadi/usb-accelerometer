@@ -6,3 +6,5 @@ Module.symvers
 modules.order
 .*.*.cmd
 accel-test
+Makefile.dep
+accelerometer-info
