@@ -14,6 +14,7 @@
 #include <linux/init.h>
 #include <linux/slab.h>
 #include <linux/module.h>
+#include <linux/usb.h>
 #include <linux/hid.h>
 
 
@@ -26,11 +27,11 @@
 typedef unsigned char accel_data;
 
 /* table of devices that work with this driver */
-static const struct hid_device_id id_table[] = {
-	{ HID_USB_DEVICE(VENDOR_ID, PRODUCT_ID) },
+static const struct usb_device_id id_table[] = {
+	{ USB_DEVICE(VENDOR_ID, PRODUCT_ID) },
 	{ },
 };
-MODULE_DEVICE_TABLE (hid, id_table);
+MODULE_DEVICE_TABLE (usb, id_table);
 
 struct hid_accel {
 	struct hid_device *	udev;
