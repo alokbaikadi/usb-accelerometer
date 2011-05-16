@@ -8,3 +8,5 @@ modules.order
 accel-test
 Makefile.dep
 accelerometer-info
+*.so.*
+*.so
