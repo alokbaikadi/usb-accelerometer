@@ -1,4 +1,4 @@
-#include "libaccelerometer.h"
+#include "libaccel.h"
 
 // macros for pulling info out of the hid interrupt
 #define REPORT_ID(byte) byte
@@ -109,9 +109,9 @@ void libaccel_direction(int *x, int *y, int *z) {
 
    err = libusb_interrupt_transfer(handle, EP_ADDRESS, report, 5, &transferred, 5*1000);
    if (err == 0 && transferred == 4) {
-      x = DIRECTION_X(report[0],report[1]);
-      y = DIRECTION_X(report[1],report[2]);
-      z = DIRECTION_X(report[2],report[3]);
+      *x = DIRECTION_X(report[0],report[1]);
+      *y = DIRECTION_Y(report[1],report[2]);
+      *z = DIRECTION_Z(report[2],report[3]);
    }
 }
 

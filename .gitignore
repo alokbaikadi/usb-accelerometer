@@ -10,3 +10,4 @@ Makefile.dep
 accelerometer-info
 *.so.*
 *.so
+poll

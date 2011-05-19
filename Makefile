@@ -1,27 +1,22 @@
-SOURCES = $(wildcard *.c)
-
-OBJECTS = $(SOURCES:.c=.o)
-
-EXENAME = accelerometer-info
-LIBNAME = libaccelerometer.so.1
-
-DEFINES = -DDEBUG
 INCLUDES = -I/usr/include -I/usr/include/libusb-1.0
-LIBRARIES =
-LINKOPTS = -shared -W1,-soname,$(LIBNAME).0
-
-c = gcc
+LIBRARIES = -L. -L/usr/lib
+LINKOPTS = -shared -W1,-soname,libaccel.so.1.0
+CC = gcc
 LDFLAGS = -Wl -O1 --as-needed -lusb-1.0
-cFLAGS = -g -Wall -ffast-math
+CFLAGS = -Wall -ffast-math
 
-CSCOPE = cscope
+all:  libaccel.so accelerometer-info poll
 
-all: $(EXENAME) $(LIBNAME)
-$(EXENAME): $(OBJECTS)
-	$(c) $(cFLAGS) $(LDFLAGS) $(DEFINES) $(INCLUDES) $(OBJECTS) $(LIBRARIES) -o $@
+accelerometer-info: accelerometer-info.o names.o hid-descriptor.o
+	$(CC) $(CFLAGS) $(LDFLAGS) $(INCLUDES) $(LIBRARIES) $(LDFLAGS) accelerometer-info.o hid-descriptor.o names.o -o $@
 
-$(LIBNAME): $(OBJECTS)
-	$(c) $(cFLAGS) $(LDFLAGS) $(DEFINES) $(INCLUDES) $(LINKOPTS) -o $(@)
+poll: poll.o libaccel.so
+	$(CC) $(CFLAGS) $(LDFLAGS) $(INCLUDES) $(LIBRARIES) $(LDFLAGS) -laccel poll.o -o poll
+
+libaccel.so: libaccel.o
+	$(CC) $(LINKOPTS) libaccel.o -o libaccel.so.1.0
+	ln -s libaccel.so.1.0 libaccel.so.1
+	ln -s libaccel.so.1.0 libaccel.so
 
 tags:
 	$(CSCOPE) -b
@@ -32,11 +27,11 @@ clean:
 	-rm -f Makefile.dep
 
 Makefile.dep:
-	$(c) -M $(cFLAGS) $(INCLUDES) $(SOURCES) > Makefile.dep
+	$(CC) -M $(cFLAGS) $(INCLUDES) $(SOURCES) > Makefile.dep
 
 .SUFFIXES: .o .c
 
 .c.o:
-	$(c) $(cFLAGS) $(DEFINES) $(INCLUDES) -c $<
+	$(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -c $<
 
 -include Makefile.dep
